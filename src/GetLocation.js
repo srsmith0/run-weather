@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState } from 'react'
 
 const GetLocation = () => {
@@ -5,19 +6,34 @@ const GetLocation = () => {
   const [ latitude, setLatitude ] = useState("");
   const [ longitude, setLongitude ] = useState("");
 
+  const myKey = process.env.REACT_APP_WEATHER_KEY
+
+  //FIXME: lat and lon won't load properly on first load of page
+
+  const getAirQuality = (lat, lon) => {
+    axios
+    .get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${myKey}`)
+    .then(res => {
+      console.log(res.data)
+    }).catch(err => console.log(err))
+  }
+
   const getUserLocation = () => {
     const status = document.querySelector('#status');
   
-    function success(position) {
+    const success = position => {
       setLatitude(position.coords.latitude);
       setLongitude(position.coords.longitude);
-
       status.textContent = '';
-      console.log(latitude, longitude)
-
+      axios
+        .get(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=imperial&appid=${myKey}`)
+        .then(res => {
+        console.log(res)
+      }).catch(e => console.log(e))
+      getAirQuality(latitude, longitude);
     }
   
-    function error() {
+    const error = () => {
       status.textContent = 'Unable to retrieve your location';
     }
   
@@ -27,7 +43,16 @@ const GetLocation = () => {
       status.textContent = 'Locating…';
       navigator.geolocation.getCurrentPosition(success, error);
     }
-  
+  }
+
+  //TODO: Get coordinates from zipcode to use for AQI
+  const useZipcode = (e) => {
+    e.preventDefault();
+    axios.get(`https://api.openweathermap.org/data/2.5/weather?zip=${zipcode}&units=imperial&appid=${myKey}`)
+    .then(res => {
+      console.log(res.data)
+    })
+    setZipcode("")
   }
 
   return (
@@ -35,9 +60,9 @@ const GetLocation = () => {
     <button onClick={getUserLocation}>
       Use My Location
     </button>
-    <p id = "status"></p>
+    <p id="status"></p>
     <p>OR</p>
-    <form>
+    <form onSubmit={useZipcode}>
       <label htmlFor='zipcode'>Zipcode</label>
       <input name='zipcode' value={zipcode} onChange={(e) => setZipcode(e.target.value)} />
       <button>Submit</button>
